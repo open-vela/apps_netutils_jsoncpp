@@ -8,7 +8,7 @@ add_executable( jsoncpp_test
 
 
 if(BUILD_SHARED_LIBS)
-    add_compile_definitions( JSON_DLL )
+    add_definitions( -DJSON_DLL )
 endif()
 target_link_libraries(jsoncpp_test jsoncpp_lib)
 
