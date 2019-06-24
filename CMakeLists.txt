@@ -66,6 +66,7 @@ project(JSONCPP
         VERSION 1.9.0 # <major>[.<minor>[.<patch>[.<tweak>]]]
         LANGUAGES CXX)
 
+set( JSONCPP_VERSION ${JSONCPP_VERSION_MAJOR}.${JSONCPP_VERSION_MINOR}.${JSONCPP_VERSION_PATCH} )
 message(STATUS "JsonCpp Version: ${JSONCPP_VERSION_MAJOR}.${JSONCPP_VERSION_MINOR}.${JSONCPP_VERSION_PATCH}")
 set( JSONCPP_SOVERSION 21 )
 
@@ -87,7 +88,12 @@ include(GNUInstallDirs)
 
 set(DEBUG_LIBNAME_SUFFIX "" CACHE STRING "Optional suffix to append to the library name for a debug build")
 
-set(JSONCPP_USE_SECURE_MEMORY "0" CACHE STRING "-D...=1 to use memory-wiping allocator for STL" )
+# Set variable named ${VAR_NAME} to value ${VALUE}
+function(set_using_dynamic_name VAR_NAME VALUE)
+    set( "${VAR_NAME}" "${VALUE}" PARENT_SCOPE)
+endfunction()
+
+set( JSONCPP_USE_SECURE_MEMORY "0" CACHE STRING "-D...=1 to use memory-wiping allocator for STL" )
 
 # File version.h is only regenerated on CMake configure step
 configure_file( "${PROJECT_SOURCE_DIR}/src/lib_json/version.h.in"
@@ -101,11 +107,11 @@ macro(UseCompilationWarningAsError)
     if(MSVC)
         # Only enabled in debug because some old versions of VS STL generate
         # warnings when compiled in release configuration.
-        add_compile_options($<$<CONFIG:Debug>:/WX>)
+        set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /WX ")
     elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-        add_compile_options(-Werror)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
         if(JSONCPP_WITH_STRICT_ISO)
-            add_compile_options(-pedantic-errors)
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pedantic-errors")
         endif()
     endif()
 endmacro()
@@ -116,29 +122,29 @@ include_directories( ${jsoncpp_SOURCE_DIR}/include )
 if(MSVC)
     # Only enabled in debug because some old versions of VS STL generate
     # unreachable code warning when compiled in release configuration.
-    add_compile_options($<$<CONFIG:Debug>:/W4>)
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /W4 ")
 endif()
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     # using regular Clang or AppleClang
-    add_compile_options(-Wall -Wconversion -Wshadow -Werror=conversion -Werror=sign-compare)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wconversion -Wshadow -Werror=conversion -Werror=sign-compare")
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     # using GCC
-    add_compile_options(-Wall -Wconversion -Wshadow -Wextra)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wconversion -Wshadow -Wextra")
     # not yet ready for -Wsign-conversion
 
     if(JSONCPP_WITH_STRICT_ISO)
-        add_compile_options(-pedantic)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pedantic")
     endif()
     if(JSONCPP_WITH_WARNING_AS_ERROR)
-        add_compile_options(-Werror=conversion)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror=conversion")
     endif()
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
     # using Intel compiler
-    add_compile_options(-Wall -Wconversion -Wshadow -Wextra -Werror=conversion)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wconversion -Wshadow -Wextra -Werror=conversion")
 
     if(JSONCPP_WITH_STRICT_ISO AND NOT JSONCPP_WITH_WARNING_AS_ERROR)
-        add_compile_options(-pedantic)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pedantic")
     endif()
 endif()
 
@@ -162,15 +168,9 @@ if(JSONCPP_WITH_PKGCONFIG_SUPPORT)
 endif()
 
 if(JSONCPP_WITH_CMAKE_PACKAGE)
-        include (CMakePackageConfigHelpers)
         install(EXPORT jsoncpp
                 DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/jsoncpp
                 FILE        jsoncppConfig.cmake)
-        write_basic_package_version_file ("${CMAKE_CURRENT_BINARY_DIR}/jsoncppConfigVersion.cmake"
-                VERSION ${PROJECT_VERSION}
-                COMPATIBILITY SameMajorVersion)
-        install(FILES ${CMAKE_CURRENT_BINARY_DIR}/jsoncppConfigVersion.cmake
-                DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/jsoncpp)
 endif()
 
 if(JSONCPP_WITH_TESTS)
